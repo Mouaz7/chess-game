@@ -1,0 +1,60 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# C++ files
+*.cpp text diff=cpp
+*.h text diff=cpp
+*.hpp text diff=cpp
+*.c text diff=cpp
+
+# CMake files
+CMakeLists.txt text
+*.cmake text
+
+# Visual Studio files
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.vcxproj.filters text eol=crlf
+
+# Documentation
+*.md text
+*.txt text
+
+# Scripts
+*.ps1 text eol=crlf
+*.sh text eol=lf
+
+# JSON files
+*.json text
+
+# Binary files
+*.exe binary
+*.dll binary
+*.so binary
+*.a binary
+*.lib binary
+*.dylib binary
+
+# Image files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+
+# Audio files
+*.wav binary
+*.mp3 binary
+*.ogg binary
+
+# Font files
+*.ttf binary
+*.otf binary
+
+# Archives
+*.zip binary
+*.tar binary
+*.gz binary
+*.7z binary
+*.rar binary

@@ -1,0 +1,72 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup vcpkg
+      uses: lukka/run-vcpkg@v10
+      with:
+        vcpkgGitCommitId: 'latest'
+    
+    - name: Install SFML
+      run: |
+        vcpkg install sfml:x64-windows
+        vcpkg integrate install
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
+    
+    - name: Build
+      run: |
+        msbuild Schack/Schack.vcxproj /p:Configuration=Release /p:Platform=x64
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: chess-game-windows
+        path: Schack/x64/Release/
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libsfml-dev
+    
+    - name: Build with CMake
+      run: |
+        mkdir build
+        cd build
+        cmake ..
+        make
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: chess-game-linux
+        path: build/Schack
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Run cppcheck
+      run: |
+        sudo apt-get install -y cppcheck
+        cppcheck --enable=all --inconclusive --std=c++20 Schack/*.h Schack/*.cpp || true

@@ -1,0 +1,28 @@
+# Visual Studio / C++ build artifacts
+*.vcxproj*
+*.sln
+*.obj
+*.exe
+*.pdb
+*.user
+*.ipch
+*.opensdf
+*.sdf
+*.vcxproj.bak
+*.vcxproj.user
+*.vcxproj.filters
+
+# Build directories
+Debug/
+Release/
+x64/
+build/
+CMakeFiles/
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# Logs
+*.log
