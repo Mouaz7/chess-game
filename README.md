@@ -23,8 +23,6 @@ A lightweight chess application built with **C++** and **SFML 3.0**, inspired 
 ### Build & Run
 
 ```powershell
-cd C:\Users\mouaz\source\repos\Schack\Schack
-powershell -ExecutionPolicy Bypass -File .\build_and_run.ps1
 ```
 
 The script finds MSBuild, compiles the project, and launches the game.
