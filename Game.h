@@ -32,16 +32,29 @@ private:
     
     // Game state
     bool gameOver;
+    bool isCheck;
     std::string gameResult;
     std::time_t gameStartTime;
+    
+    // Pawn promotion
+    bool waitingForPromotion;
+    Position<int> promotionSquare;
+    PieceColor promotionColor;
     
     // UI font
     sf::Font uiFont;
     bool uiFontLoaded;
 
+    // View for scaling
+    sf::View gameView;
+    const float LOGICAL_WIDTH = BOARD_SIZE * SQUARE_SIZE + 200;
+    const float LOGICAL_HEIGHT = BOARD_SIZE * SQUARE_SIZE;
+
     Position<int> getSquareFromMouse(int mouseX, int mouseY) {
-        int row = mouseY / SQUARE_SIZE;
-        int col = mouseX / SQUARE_SIZE;
+        // Convert window coordinates to view coordinates
+        sf::Vector2f worldPos = window.mapPixelToCoords(sf::Vector2i(mouseX, mouseY), gameView);
+        int row = static_cast<int>(worldPos.y) / SQUARE_SIZE;
+        int col = static_cast<int>(worldPos.x) / SQUARE_SIZE;
         return Position<int>(row, col);
     }
     
@@ -146,6 +159,9 @@ public:
         blackTimeRemaining(600),
         timerEnabled(true),
         gameOver(false),
+        isCheck(false),
+        waitingForPromotion(false),
+        promotionSquare(-1, -1),
         uiFontLoaded(false)
     {
         // Load UI font
@@ -168,8 +184,15 @@ public:
         std::cout << "Timer: 10 minutes per player\n\n";
         
         // Create window AFTER getting input to avoid "Not Responding" state
-        window.create(sf::VideoMode({BOARD_SIZE * SQUARE_SIZE + 200, BOARD_SIZE * SQUARE_SIZE}), "Chess Game");
+        window.create(sf::VideoMode({static_cast<unsigned int>(LOGICAL_WIDTH), static_cast<unsigned int>(LOGICAL_HEIGHT)}), 
+                     "Chess Game", 
+                     sf::Style::Default);
         window.setFramerateLimit(60);
+        
+        // Initialize view
+        gameView.setSize(sf::Vector2f(LOGICAL_WIDTH, LOGICAL_HEIGHT));
+        gameView.setCenter(sf::Vector2f(LOGICAL_WIDTH / 2.0f, LOGICAL_HEIGHT / 2.0f));
+        window.setView(gameView);
         
         // Record game start time
         gameStartTime = std::time(nullptr);
@@ -219,6 +242,27 @@ private:
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
+            else if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+                // Handle window resizing with letterboxing
+                float windowRatio = static_cast<float>(resized->size.x) / static_cast<float>(resized->size.y);
+                float viewRatio = LOGICAL_WIDTH / LOGICAL_HEIGHT;
+                float sizeX = 1;
+                float sizeY = 1;
+                float posX = 0;
+                float posY = 0;
+
+                if (windowRatio > viewRatio) {
+                    sizeX = viewRatio / windowRatio;
+                    posX = (1 - sizeX) / 2.f;
+                }
+                else {
+                    sizeY = windowRatio / viewRatio;
+                    posY = (1 - sizeY) / 2.f;
+                }
+
+                gameView.setViewport(sf::FloatRect({posX, posY}, {sizeX, sizeY}));
+                window.setView(gameView);
+            }
             else if (const auto* mousePress = event->getIf<sf::Event::MouseButtonPressed>()) {
                 if (mousePress->button == sf::Mouse::Button::Left) {
                     handleMouseClick(mousePress->position.x, mousePress->position.y);
@@ -250,6 +294,32 @@ private:
     }
 
     void handleMouseClick(int mouseX, int mouseY) {
+        // Handle pawn promotion selection first
+        if (waitingForPromotion) {
+            // Promotion UI is in sidebar (x > BOARD_SIZE * SQUARE_SIZE)
+            sf::Vector2f worldPos = window.mapPixelToCoords(sf::Vector2i(mouseX, mouseY), gameView);
+            if (worldPos.x > BOARD_SIZE * SQUARE_SIZE) {
+                int buttonY = static_cast<int>(worldPos.y);
+                PieceType selectedType = PieceType::QUEEN; // Default
+                
+                // Simple button layout: 4 buttons stacked vertically
+                if (buttonY >= 200 && buttonY < 250) selectedType = PieceType::QUEEN;
+                else if (buttonY >= 260 && buttonY < 310) selectedType = PieceType::ROOK;
+                else if (buttonY >= 320 && buttonY < 370) selectedType = PieceType::BISHOP;
+                else if (buttonY >= 380 && buttonY < 430) selectedType = PieceType::KNIGHT;
+                else return; // Click outside buttons
+                
+                // Promote the pawn
+                board->promotePawn(promotionSquare, selectedType);
+                std::cout << "Pawn promoted!\n";
+                
+                waitingForPromotion = false;
+                promotionSquare = Position<int>(-1, -1);
+                return;
+            }
+            return; // Ignore board clicks during promotion
+        }
+        
         Position<int> clickedSquare = getSquareFromMouse(mouseX, mouseY);
 
         if (!clickedSquare.isValid()) return;
@@ -285,6 +355,22 @@ private:
                     // Add to history
                     history->addMove(Move(selectedSquare, clickedSquare, isCapture, false));
                     
+                    // Check for pawn promotion
+                    Piece* movedPiece = board->getPieceAt(clickedSquare);
+                    if (movedPiece && movedPiece->getType() == PieceType::PAWN) {
+                        int endRank = (movedPiece->getColor() == PieceColor::WHITE) ? 0 : 7;
+                        if (clickedSquare.getRow() == endRank) {
+                            // Show promotion UI
+                            waitingForPromotion = true;
+                            promotionSquare = clickedSquare;
+                            promotionColor = movedPiece->getColor();
+                            std::cout << "Choose promotion piece!\n";
+                            isPieceSelected = false;
+                            currentValidMoves.clear();
+                            return; // Don't check for checkmate yet
+                        }
+                    }
+                    
                     PieceColor currentPlayer = board->getCurrentTurn();
                     
                     // Check for checkmate
@@ -312,8 +398,12 @@ private:
                     }
                     // Check for check
                     else if (board->isPlayerInCheck(currentPlayer)) {
+                        isCheck = true;
                         std::string playerName = (currentPlayer == PieceColor::WHITE ? whitePlayerName : blackPlayerName);
                         std::cout << playerName << " is in CHECK!\n";
+                    }
+                    else {
+                        isCheck = false;
                     }
                     
                     isPieceSelected = false;
@@ -331,6 +421,23 @@ private:
         
         // Draw board and pieces with move hints
         board->draw(window, currentValidMoves);
+
+        // Draw visual check warning - RED BORDER around king
+        if (isCheck && !gameOver) {
+            Position<int> kingPos = board->findKing(board->getCurrentTurn());
+            if (kingPos.isValid()) {
+                // Draw thick red border around king square
+                sf::RectangleShape checkWarning(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
+                checkWarning.setPosition(sf::Vector2f(
+                    static_cast<float>(kingPos.getCol() * SQUARE_SIZE),
+                    static_cast<float>(kingPos.getRow() * SQUARE_SIZE)
+                ));
+                checkWarning.setFillColor(sf::Color::Transparent);
+                checkWarning.setOutlineColor(sf::Color::Red);
+                checkWarning.setOutlineThickness(6.0f); // Thick red border
+                window.draw(checkWarning);
+            }
+        }
 
         // Highlight selected square with Chess.com style (green highlight)
         if (isPieceSelected) {
@@ -454,6 +561,61 @@ private:
                 winnerText.setFillColor(sf::Color::Yellow);
                 winnerText.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 + 55));
                 window.draw(winnerText);
+            }
+            // Check warning text
+            else if (isCheck && !gameOver) {
+                sf::Text checkText(uiFont);
+                checkText.setString("CHECK!");
+                checkText.setCharacterSize(28);
+                checkText.setFillColor(sf::Color::Red);
+                checkText.setStyle(sf::Text::Bold);
+                checkText.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 - 20));
+                window.draw(checkText);
+            }
+            
+            // Pawn promotion UI
+            if (waitingForPromotion) {
+                // Semi-transparent overlay
+                sf::RectangleShape overlay(sf::Vector2f(200, BOARD_SIZE * SQUARE_SIZE));
+                overlay.setPosition(sf::Vector2f(BOARD_SIZE * SQUARE_SIZE, 0));
+                overlay.setFillColor(sf::Color(0, 0, 0, 180));
+                window.draw(overlay);
+                
+                // Title
+                sf::Text titleText(uiFont);
+                titleText.setString("Promote Pawn");
+                titleText.setCharacterSize(20);
+                titleText.setFillColor(sf::Color::White);
+                titleText.setStyle(sf::Text::Bold);
+                titleText.setPosition(sf::Vector2f(uiX, 150));
+                window.draw(titleText);
+                
+                // Promotion buttons
+                std::vector<std::pair<std::string, int>> buttons = {
+                    {"Queen", 200},
+                    {"Rook", 260},
+                    {"Bishop", 320},
+                    {"Knight", 380}
+                };
+                
+                for (const auto& btn : buttons) {
+                    // Button background
+                    sf::RectangleShape button(sf::Vector2f(180, 45));
+                    button.setPosition(sf::Vector2f(uiX, btn.second));
+                    button.setFillColor(sf::Color(70, 130, 180));
+                    button.setOutlineColor(sf::Color::White);
+                    button.setOutlineThickness(2);
+                    window.draw(button);
+                    
+                    // Button text
+                    sf::Text buttonText(uiFont);
+                    buttonText.setString(btn.first);
+                    buttonText.setCharacterSize(18);
+                    buttonText.setFillColor(sf::Color::White);
+                    buttonText.setStyle(sf::Text::Bold);
+                    buttonText.setPosition(sf::Vector2f(uiX + 50, btn.second + 12));
+                    window.draw(buttonText);
+                }
             }
         }
 

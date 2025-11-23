@@ -1,179 +1,355 @@
 # Schack – C++ SFML Chess Game
 
-A lightweight chess application built with **C++** and **SFML 3.0**, inspired by Chess.com’s visual style.
+A lightweight chess application built with **C++** and **SFML 3.0**, inspired by Chess.com's visual style.
 
-## 📦 Prerequisites (from scratch)
+![](https://img.shields.io/badge/C%2B%2B-20-blue) ![](https://img.shields.io/badge/SFML-3.0-green) ![](https://img.shields.io/badge/License-MIT-yellow)
 
-1. **Git** – download and install from https://git-scm.com/downloads.
-2. **Visual Studio 2022** (Community/Professional/Enterprise) with the **Desktop development with C++** workload.
-   - Ensure the **MSVC v143 – VS 2022 C++ x64/x86 build tools** and **Windows 10 SDK** are selected.
-3. **PowerShell** (comes with Windows) – you will run the provided scripts.
-4. **vcpkg** – a C++ package manager.
-   ```powershell
-   git clone https://github.com/microsoft/vcpkg.git $env:USERPROFILE\vcpkg
-   cd $env:USERPROFILE\vcpkg
-   .\bootstrap-vcpkg.bat
-   ```
-5. **SFML 3.0** via vcpkg (installed globally for the project):
-   ```powershell
-   $env:VCPKG_ROOT = "$env:USERPROFILE\vcpkg"
-   $env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
-   .\vcpkg install sfml:x64-windows
-   ```
-6. (Optional) **Visual Studio Code** – install from https://code.visualstudio.com/.
-   - Install the **C/C++** extension by Microsoft.
-   - Install the **CMake Tools** extension if you prefer CMake builds.
+## Features
 
-## 📂 Getting the source code
+- **Chess.com-inspired UI**: Classic green board theme with professional aesthetics
+- **Move hints**: Visual indicators showing legal moves (dots for empty squares, rings for captures)
+- **Material advantage display**: Real-time material score showing which player is ahead
+- **Player customization**: Enter custom player names at startup
+- **Game timer**: 10-minute per-player chess clock with active-turn highlighting
+- **Move history**: Automatic logging of all moves to `game_history.txt`
+- **Match results**: Game outcomes saved to `match_results.txt`
+- **Clean architecture**: Modular code with separate Board, Game, Pieces, and Move validation
+
+## Technology Stack
+
+### Programming Language
+
+- **C++20**: Modern C++ with features like smart pointers, templates, lambda expressions, and RAII (Resource Acquisition Is Initialization)
+- Provides high performance, type safety, and automatic memory management
+- No manual memory allocation/deallocation needed
+
+### Graphics Library
+
+- **SFML 3.0** (Simple and Fast Multimedia Library)
+  - Cross-platform C++ library for graphics, window management, and user input
+  - Handles rendering the chessboard, pieces, and UI elements
+  - Provides easy-to-use graphics primitives and image loading
+  - Built-in support for shapes, textures, sprites, and text rendering
+
+### Build System & Tools
+
+- **Visual Studio 2022**: Primary IDE and compiler (MSVC v143)
+  - Integrated debugger and profiler
+  - IntelliSense for code completion
+  - Project management with .vcxproj files
+- **MSBuild**: Microsoft's build engine for compiling C++ projects
+- **vcpkg**: Modern C++ package manager for SFML and its dependencies
+  - Manages library installation and integration
+  - Ensures consistent builds across machines
+
+### Dependencies (Managed by vcpkg)
+
+All dependencies are automatically installed via vcpkg:
+
+- **SFML** - Main graphics and multimedia framework
+- **FreeType** - Font rendering engine (used by SFML for text)
+- **FLAC, Vorbis, Ogg** - Audio codec libraries (used by SFML for sound)
+- **libpng** - PNG image format support for piece graphics
+- **zlib, brotli** - Compression libraries for file formats
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+1. **Windows 10/11** operating system
+2. **Git** – [Download from git-scm.com](https://git-scm.com/downloads)
+3. **Visual Studio 2022** (Community/Professional/Enterprise)
+   - Install the **Desktop development with C++** workload
+   - Ensure **MSVC v143 – VS 2022 C++ x64/x86 build tools** is selected
+   - Ensure **Windows 10 SDK** is selected
+4. **vcpkg** – C++ package manager for installing SFML
+
+### Installing vcpkg
+
+Open PowerShell and run:
 
 ```powershell
-# Clone the repository (replace with your fork if you plan to push changes)
+# Clone vcpkg to your user profile
+git clone https://github.com/microsoft/vcpkg.git $env:USERPROFILE\vcpkg
+
+# Navigate to vcpkg directory
+cd $env:USERPROFILE\vcpkg
+
+# Bootstrap vcpkg
+.\bootstrap-vcpkg.bat
+
+# Integrate with Visual Studio (run this as Administrator if needed)
+.\vcpkg integrate install
+```
+
+### Installing SFML 3.0
+
+After installing vcpkg, install SFML:
+
+```powershell
+# Set environment variables
+$env:VCPKG_ROOT = "$env:USERPROFILE\vcpkg"
+$env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
+
+# Install SFML for x64-windows
+.\vcpkg install sfml:x64-windows
+```
+
+> **Note**: SFML installation may take 5-10 minutes and requires ~120 MB of disk space.
+
+## Getting the Source Code
+
+The repository is lightweight (~6 MB). Dependencies are installed separately via vcpkg.
+
+```powershell
 git clone https://github.com/Mouaz7/chess-game.git
 cd chess-game
 ```
 
-## 🛠️ Building & running the project
+After cloning, vcpkg will automatically restore dependencies when you first build the project.
 
-The repository already contains two helper PowerShell scripts:
+## Understanding the Project Structure
 
-- `find_msbuild.ps1` – locates the correct `MSBuild.exe` on your machine.
-- `build_and_run.ps1` – builds the solution in **Release|x64** and launches the executable.
+### What's in the Repository (Tracked in Git)
 
-### Step‑by‑step
+```
+chess-game/
+├── *.h, *.cpp          # Source code files
+├── assets/             # Piece images (PNG files)
+├── vcpkg.json          # Dependency manifest
+├── *.vcxproj           # Visual Studio project files
+├── build_and_run.ps1   # Build automation script
+├── .gitignore          # Git ignore rules
+└── README.md           # This file
+```
 
-1. **Open a PowerShell window** (run as Administrator if you encounter execution‑policy issues).
-2. **Allow script execution** (you only need to do this once):
+### What Gets Generated Locally (NOT in Git)
+
+These folders/files are created when you build or run the game:
+
+- **`vcpkg_installed/`** - SFML and dependencies (~120 MB, regenerated from vcpkg.json)
+- **`x64/Debug/`** and **`x64/Release/`** - Compiled executables and build artifacts
+- **`game_history.txt`** - Your game moves (created when you play)
+- **`match_results.txt`** - Game outcomes (created when you play)
+
+> **Important**: Never commit `vcpkg_installed/` or `x64/` to Git - they're automatically regenerated.
+
+## Building and Running
+
+You can build and run the chess game using **Visual Studio 2022**, **Visual Studio Code**, or **PowerShell scripts**.
+
+### Option 1: Using Visual Studio 2022
+
+1. **Open the solution**:
+
+   - Launch Visual Studio 2022
+   - Go to **File → Open → Project/Solution**
+   - Navigate to the project folder and open `Schack.sln`
+
+2. **Configure the build**:
+
+   - In the top toolbar, set the configuration to **Release**
+   - Set the platform to **x64**
+
+3. **Build the project**:
+
+   - Press **Ctrl+Shift+B** or go to **Build → Build Solution**
+   - Wait for the build to complete (check the Output window for any errors)
+
+4. **Run the game**:
+   - Press **Ctrl+F5** (Start Without Debugging) or **F5** (Start Debugging)
+   - The console will prompt you to enter player names
+   - After entering names, the game window will appear
+
+### Option 2: Using Visual Studio Code
+
+1. **Open the project folder**:
+
+   ```powershell
+   # Navigate to your project directory
+   cd <your-project-directory>
+
+   # Open in VS Code
+   code .
+   ```
+
+2. **Create VS Code configuration files**:
+
+   Create a `.vscode` folder in the project root if it doesn't exist, then create the following files:
+
+   **`.vscode/tasks.json`** (for building):
+
+   ```json
+   {
+     "version": "2.0.0",
+     "tasks": [
+       {
+         "label": "Build Schack",
+         "type": "shell",
+         "command": "powershell",
+         "args": [
+           "-ExecutionPolicy",
+           "Bypass",
+           "-File",
+           "${workspaceFolder}\\build_and_run.ps1"
+         ],
+         "group": {
+           "kind": "build",
+           "isDefault": true
+         },
+         "problemMatcher": []
+       }
+     ]
+   }
+   ```
+
+   **`.vscode/launch.json`** (for debugging):
+
+   ```json
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "name": "Run Schack",
+         "type": "cppvsdbg",
+         "request": "launch",
+         "program": "${workspaceFolder}\\x64\\Release\\Schack.exe",
+         "args": [],
+         "stopAtEntry": false,
+         "cwd": "${workspaceFolder}",
+         "environment": [],
+         "console": "externalTerminal"
+       }
+     ]
+   }
+   ```
+
+3. **Build and run**:
+   - Press **Ctrl+Shift+B** to build the project
+   - Press **F5** to run the game
+   - Alternatively, use the **Run** panel on the left sidebar
+
+### Option 3: Using PowerShell Scripts
+
+The project includes helper scripts for quick building and running:
+
+1. **Open PowerShell** in the project directory
+
+2. **Allow script execution** (if needed):
+
    ```powershell
    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
    ```
+
 3. **Run the build script**:
    ```powershell
-   cd C:\Users\mouaz\source\repos\Schack\Schack
-   powershell -ExecutionPolicy Bypass -File .\build_and_run.ps1
+   .\build_and_run.ps1
    ```
-   - The script will call `find_msbuild.ps1` to locate MSBuild, compile the solution, and start `Schack.exe`.
-   - If the build succeeds you will see the game window with the Chess.com‑style green board.
 
-## 🖥️ Using Visual Studio 2022
+The script will:
 
-1. Open `Schack.sln` (or the `Schack.vcxproj` file) via **File → Open → Project/Solution**.
-2. Set the configuration to **Release** and platform to **x64** (top toolbar).
-3. Build with **Ctrl+Shift+B** or **Build → Build Solution**.
-4. Run with **Ctrl+F5** (start without debugging) to see the game.
+- Automatically locate MSBuild
+- Build the project in Release mode
+- Launch the executable
 
-## 🖥️ Using Visual Studio Code
+## How to Play
 
-1. Open the folder:
-   ```powershell
-   code C:\Users\mouaz\source\repos\Schack\Schack
-   ```
-2. Create a `.vscode` folder with two files:
-   - **tasks.json** (build task):
-     ```json
-     {
-       "version": "2.0.0",
-       "tasks": [
-         {
-           "label": "Build Schack",
-           "type": "shell",
-           "command": "powershell",
-           "args": [
-             "-ExecutionPolicy",
-             "Bypass",
-             "-File",
-             "${workspaceFolder}\\build_and_run.ps1"
-           ],
-           "group": "build",
-           "problemMatcher": []
-         }
-       ]
-     }
-     ```
-   - **launch.json** (run without debugging):
-     ```json
-     {
-       "version": "0.2.0",
-       "configurations": [
-         {
-           "name": "Run Schack",
-           "type": "cppvsdbg",
-           "request": "launch",
-           "program": "${workspaceFolder}\\Release\\Schack.exe",
-           "args": [],
-           "stopAtEntry": false,
-           "cwd": "${workspaceFolder}",
-           "environment": [],
-           "externalConsole": true
-         }
-       ]
-     }
-     ```
-3. Press **Ctrl+Shift+B** to run the build task, then press **F5** to launch the game (or use the **Run** panel).
+1. **Start the game**: Run the executable using any of the methods above
+2. **Enter player names**: Type the names for White and Black players in the console
+3. **Select a piece**: Click on any piece to see its valid moves (shown as gray dots/rings)
+4. **Make a move**: Click on a highlighted square to move the selected piece
+5. **Watch the timer**: Each player has 10 minutes; the active player's timer counts down
+6. **Track material**: The sidebar shows which player has a material advantage
 
-## 🧩 Troubleshooting
+### Keyboard Controls
 
-- **MSBuild not found** – ensure Visual Studio is installed with the C++ workload; the `find_msbuild.ps1` script will locate it automatically.
-- **SFML headers missing** – verify that `vcpkg integrate install` was run, or add `C:\Users\<you>\vcpkg\installed\x64-windows\include` to the include directories and the corresponding lib path.
-- **Permission denied when running scripts** – run PowerShell as Administrator or set the execution policy as shown above.
-- **Runtime "Not Responding"** – make sure you run the script _after_ the console prompts for player names (the script already handles this).
+- **S**: Save game history to `game_history.txt`
+- **R**: Reset the game
+- **ESC**: Exit the game (automatically saves match results)
 
-## 📄 License
+## Project Architecture
 
-MIT – you may use, modify, and distribute this code.
-
-A lightweight chess application built with **C++** and **SFML 3.0**, inspired by Chess.com’s visual style.
-
-## Features
-
-- Classic green board theme (Chess.com colors)
-- Move hints: dots for empty squares, rings for capture squares
-- Material score display (+N for the player with material advantage)
-- Player name input at startup
-- 10‑minute per‑player timer with active‑turn highlighting
-- Automatic match‑result logging to `match_results.txt`
-- Clean, modular code (Board, Game, Pieces, Move validation)
-
-## Getting Started
-
-### Prerequisites
-
-- Windows 10/11
-- Visual Studio 2022 (C++ tools)
-- SFML 3.0 (installed via vcpkg)
-
-### Build & Run
-
-```powershell
-cd C:\Users\mouaz\source\repos\Schack\Schack
-powershell -ExecutionPolicy Bypass -File .\build_and_run.ps1
-```
-
-The script finds MSBuild, compiles the project, and launches the game.
-
-## Play
-
-1. Enter the white and black player names in the console.
-2. Click a piece – valid moves appear as gray dots/rings.
-3. Move by clicking a highlighted square. The timer and material advantage update in real time.
-
-## Project Structure
+The game uses modern C++ design patterns and principles:
 
 ```
-/src
-   main.cpp          – entry point
-   Game.h/.cpp       – game loop, UI, timers
-   Board.h/.cpp      – board representation, move generation, rendering
-   Pieces.h/.cpp     – piece classes and movement rules
-/assets
-   *.png             – high‑resolution piece images
+Core Components:
+├── main.cpp              # Entry point and initialization
+├── Game.h                # Game loop, UI rendering, timers, and event handling
+├── Board.h               # Board state, move generation, and validation
+├── Pieces.h              # Piece implementations (King, Queen, Rook, Bishop, Knight, Pawn)
+├── Piece.h               # Abstract base class defining piece interface
+├── Position.h            # Template class for board coordinates
+├── Move.h                # Move representation and metadata
+├── Enums.h               # PieceColor and PieceType enumerations
+└── GameHistory.h         # Move history tracking and file I/O
+
+Design Patterns Used:
+- Factory Pattern: Creating pieces dynamically
+- Strategy Pattern: Each piece has unique move validation logic
+- RAII: Smart pointers for automatic memory management
+- Polymorphism: Virtual functions for piece behavior
 ```
+
+## Troubleshooting
+
+### MSBuild not found
+
+- **Solution**: Ensure Visual Studio 2022 is installed with the C++ workload. The `find_msbuild.ps1` script should automatically locate MSBuild.
+
+### SFML headers missing
+
+- **Solution**:
+  - Verify that `vcpkg integrate install` was run successfully
+  - Check that SFML was installed: `vcpkg list | Select-String sfml`
+  - If needed, reinstall: `vcpkg install sfml:x64-windows`
+
+### Permission denied when running scripts
+
+- **Solution**:
+  - Run PowerShell as Administrator
+  - Or set execution policy: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`
+
+### "Not Responding" at startup
+
+- **Solution**: This is normal. The window becomes responsive after you enter player names in the console.
+
+### DLL not found errors
+
+- **Solution**: Ensure you're building in x64 mode and that vcpkg integration is active. The SFML DLLs should be automatically copied by vcpkg.
+
+### Build errors after cloning
+
+- **Solution**:
+  - Clean the solution: **Build → Clean Solution** in Visual Studio
+  - Delete the `x64` folder if it exists
+  - Rebuild: **Build → Rebuild Solution**
+
+### vcpkg_installed folder is missing
+
+- **Solution**: This is normal for a fresh clone. Run the build and vcpkg will automatically restore dependencies based on `vcpkg.json`.
 
 ## Contributing
 
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/your‑idea`).
-3. Implement your changes, run the build script to verify, then submit a Pull Request.
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-idea`
+3. Make your changes and test thoroughly
+4. Run the build script to verify: `.\build_and_run.ps1`
+5. Commit your changes: `git commit -m "Add your feature"`
+6. Push to your fork: `git push origin feature/your-idea`
+7. Submit a Pull Request
+
+**Please ensure**:
+
+- Your code follows C++20 standards
+- No build warnings or errors
+- Code is well-commented for complex logic
 
 ## License
 
-MIT – you may use, modify, and distribute this code.
+MIT License – You may use, modify, and distribute this code freely.
+
+---
+
+**Enjoy playing chess!** 🎮♟️
+
+Made with ❤️ using C++ and SFML

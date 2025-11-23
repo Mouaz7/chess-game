@@ -1,28 +1,48 @@
-# Visual Studio / C++ build artifacts
-*.vcxproj*
-*.sln
+# Visual Studio build artifacts
 *.obj
 *.exe
 *.pdb
-*.user
+*.ilk
+*.idb
 *.ipch
 *.opensdf
 *.sdf
-*.vcxproj.bak
-*.vcxproj.user
-*.vcxproj.filters
+*.suo
+*.user
+*.aps
+*.ncb
+*.opendb
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
 
 # Build directories
 Debug/
 Release/
 x64/
+Win32/
 build/
-CMakeFiles/
+out/
+.vs/
+
+# vcpkg dependencies (can be regenerated)
+vcpkg_installed/
+
+# Generated game files (personal data)
+game_history.txt
+match_results.txt
 
 # OS files
 Thumbs.db
 .DS_Store
 desktop.ini
+*.swp
+*~
 
 # Logs
 *.log
+
+# Keep these important files (override above patterns)
+!Schack.vcxproj
+!Schack.vcxproj.filters
+!*.sln
