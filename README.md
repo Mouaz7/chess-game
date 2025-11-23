@@ -1,14 +1,45 @@
+# ♟️ Chess Game - C++ SFML
+
+A professional chess game built with modern C++ and SFML 3.0, featuring Chess.com-inspired UI, move validation, timers, and game history tracking.
+
+[![C++](https://img.shields.io/badge/C++-96.2%25-blue?style=flat-square&logo=cplusplus)](https://github.com/Mouaz7/chess-game)
+[![SFML](https://img.shields.io/badge/SFML-3.0-green?style=flat-square)](https://www.sfml-dev.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey?style=flat-square)](https://github.com/Mouaz7/chess-game)
+
+---
+
+## 📑 Table of Contents
+
+- [Language Statistics](#-language-statistics)
 - [Features](#-features)
-- [Technology Stack](#-technology-stack)
-- [Game Architecture](#-game-architecture)
+- [Technology Stack](#️-technology-stack)
+- [Game Architecture](#️-game-architecture)
 - [Prerequisites](#-prerequisites)
 - [Installation](#-installation)
 - [Building & Running](#-building--running)
+  - [Option 1: Visual Studio 2022](#option-1-visual-studio-2022-community-recommended-for-beginners)
+  - [Option 2: Visual Studio Code](#option-2-visual-studio-code-lightweight-alternative)
+  - [Option 3: PowerShell Script](#option-3-powershell-script-fastest)
+  - [Option 4: Manual Build](#option-4-manual-build)
 - [How to Play](#-how-to-play)
 - [Project Structure](#-project-structure)
 - [Troubleshooting](#-troubleshooting)
 - [Contributing](#-contributing)
 - [License](#-license)
+- [Acknowledgments](#-acknowledgments)
+- [Contact](#-contact)
+
+---
+
+## 📊 Language Statistics
+
+![C++](https://img.shields.io/badge/C++-96.2%25-blue?style=flat-square&logo=cplusplus)
+![C](https://img.shields.io/badge/C-1.6%25-lightgrey?style=flat-square)
+![CMake](https://img.shields.io/badge/CMake-1.5%25-green?style=flat-square)
+![Other](https://img.shields.io/badge/Other-0.7%25-orange?style=flat-square)
+
+This project is written in **96.2% modern C++**, utilizing object-oriented programming principles with classes, inheritance, polymorphism, and templates.
 
 ---
 
@@ -16,10 +47,11 @@
 
 ### Core Chess Functionality
 
-- ✅ **Complete chess rules** - All standard chess moves including castling, en passant
+- ✅ **Most standard chess rules** - All basic piece movements (King, Queen, Rook, Bishop, Knight, Pawn)
 - ✅ **Checkmate & stalemate detection** - Automatic game-end detection
 - ✅ **Legal move validation** - Prevents illegal moves that leave king in check
 - ✅ **Pawn promotion** - Interactive UI to promote pawns to Queen, Rook, Bishop, or Knight
+- ⏳ **Special moves** - Castling and en passant planned for future release
 
 ### Visual Features
 
@@ -43,13 +75,24 @@
 
 ### Programming Language
 
-**C++20** - Modern C++ with advanced features:
+**C++20** - Modern, Object-Oriented C++ with advanced features:
 
-- Smart pointers (`std::unique_ptr`) for automatic memory management
-- Templates for type-safe generic programming
-- RAII (Resource Acquisition Is Initialization) for resource safety
-- Lambda expressions and modern STL containers
-- No manual `new`/`delete` - zero memory leaks
+#### Object-Oriented Programming (OOP)
+
+- **Classes & Objects** - Well-structured class hierarchy for game entities
+- **Inheritance** - `Piece` base class inherited by `King`, `Queen`, `Rook`, `Bishop`, `Knight`, `Pawn`
+- **Polymorphism** - Virtual functions (`isValidMove()`, `getType()`, `getSymbol()`)
+- **Encapsulation** - Private/protected members with public interfaces
+- **Abstraction** - Abstract base class `Piece` with pure virtual functions
+
+#### Modern C++ Features
+
+- **Smart pointers** (`std::unique_ptr`) for automatic memory management
+- **Templates** for type-safe generic programming (`Position<T>`)
+- **RAII** (Resource Acquisition Is Initialization) for resource safety
+- **Lambda expressions** and modern STL containers
+- **No manual `new`/`delete`** - zero memory leaks
+- **Move semantics** for efficient resource transfer
 
 ### Graphics & Multimedia
 
@@ -335,135 +378,279 @@ These are created when you build/run:
 
 ## 🚀 Building & Running
 
-### Option 1: Visual Studio 2022 Community (Rekommenderas för nybörjare)
+### Option 1: Visual Studio 2022 Community (Recommended for Beginners)
 
-#### Ladda ner och installera
+#### Download and Install
 
-1. **Ladda ner Visual Studio 2022 Community** (Gratis!)
+1. **Download Visual Studio 2022 Community** (Free!)
 
-   - Besök: [visualstudio.microsoft.com](https://visualstudio.microsoft.com/)
-   - Ladda ner **Visual Studio 2022 Community Edition** (helt gratis)
+   - Visit: [visualstudio.microsoft.com](https://visualstudio.microsoft.com/)
+   - Download **Visual Studio 2022 Community Edition** (completely free)
 
-2. **Installera nödvändiga komponenter**
+2. **Install Required Components**
 
-   Under installation, välj dessa workloads:
+   During installation, select these workloads:
 
    - ✅ **Desktop development with C++**
 
-   Under "Individual components", se till att dessa är markerade:
+   Under "Individual components", make sure these are checked:
 
    - ✅ **MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)**
-   - ✅ **Windows 10 SDK** (eller Windows 11 SDK)
-   - ✅ **C++ CMake tools for Windows** (valfritt men rekommenderat)
+   - ✅ **Windows 10 SDK** (or Windows 11 SDK)
+   - ✅ **C++ CMake tools for Windows** (optional but recommended)
 
-3. **Språkinställningar**
+3. **Language Settings**
 
-   Visual Studio Community stödjer flera språk:
+   Visual Studio Community supports multiple languages:
 
-   - **Standard**: Engelska (rekommenderas för programmering)
-   - **Ändra språk**: Tools → Options → Environment → International Settings
-   - **OBS**: Håll IDE på engelska för enklare felsökning, men kommentarer kan vara på vilket språk som helst
+   - **Default**: English (recommended for programming)
+   - **Change language**: Tools → Options → Environment → International Settings
+   - **Note**: Keep IDE in English for easier debugging, but comments can be in any language
 
-#### Öppna projektet
+#### Open the Project
 
-1. **Starta Visual Studio 2022 Community**
+1. **Launch Visual Studio 2022 Community**
 
-   - Start-menyn → Visual Studio 2022
+   - Start menu → Visual Studio 2022
 
-2. **Öppna schackprojektet**
+2. **Open the Chess Project**
 
-   **Metod A - Använd Solution-fil** (Enklast):
+   **Method A - Use Solution File** (Easiest):
 
-   - Klicka **File → Open → Project/Solution**
-   - Navigera till din klonade repository-mapp
-   - Välj `Schack.sln` (Solution-fil)
-   - Klicka **Open**
+   - Click **File → Open → Project/Solution**
+   - Navigate to your cloned repository folder
+   - Select `Schack.sln` (Solution file)
+   - Click **Open**
 
-   **Metod B - Använd mapp**:
+   **Method B - Use Folder**:
 
-   - Klicka **File → Open → Folder**
-   - Välj projektmappen
-   - Visual Studio kommer automatiskt att upptäcka projektet
+   - Click **File → Open → Folder**
+   - Select the project folder
+   - Visual Studio will automatically detect the project
 
-3. **Vänta på att projektet laddas**
-   - Visual Studio kommer att indexera filer (1-2 minuter första gången)
-   - Du ser "Ready" i nedre vänstra hörnet när det är klart
+3. **Wait for Project to Load**
+   - Visual Studio will index files (1-2 minutes first time)
+   - You'll see "Ready" in the bottom left corner when complete
 
-#### Bygga projektet
+#### Build the Project
 
-1. **Välj Build Configuration**
+1. **Select Build Configuration**
 
-   I verktygsfältet längst upp (nära den gröna play-knappen):
+   In the toolbar at the top (near the green play button):
 
-   - **Configuration**: Välj **Release** (inte Debug)
-     - Release = Optimerad, snabbare prestanda
-     - Debug = Långsammare, men enklare att debugga
-   - **Platform**: Välj **x64** (inte x86)
-     - x64 = 64-bit (krävs för detta projekt)
+   - **Configuration**: Select **Release** (not Debug)
+     - Release = Optimized, faster performance
+     - Debug = Slower, but easier to debug
+   - **Platform**: Select **x64** (not x86)
+     - x64 = 64-bit (required for this project)
 
-2. **Bygg Solution**
+2. **Build Solution**
 
-   Välj en metod:
+   Choose a method:
 
-   - **Tangentbord**: Tryck `Ctrl+Shift+B`
-   - **Meny**: Build → Build Solution
-   - **Högerklick**: Solution Explorer → Högerklicka "Schack" → Build
+   - **Keyboard**: Press `Ctrl+Shift+B`
+   - **Menu**: Build → Build Solution
+   - **Right-click**: Solution Explorer → Right-click "Schack" → Build
 
-3. **Kontrollera Build Output**
+3. **Check Build Output**
 
-   - Titta på **Output**-fönstret (View → Output om det inte syns)
-   - Lyckad build visar: `Build: 1 succeeded, 0 failed`
-   - Om fel uppstår, kolla [Troubleshooting](#-troubleshooting)
+   - Look at the **Output** window (View → Output if not visible)
+   - Successful build shows: `Build: 1 succeeded, 0 failed`
+   - If errors occur, check [Troubleshooting](#-troubleshooting)
 
-#### Köra spelet
+#### Run the Game
 
-1. **Starta spelet**
+1. **Start the Game**
 
-   Välj en metod:
+   Choose a method:
 
-   - **Utan Debugger** (Snabbare): Tryck `Ctrl+F5`
-   - **Med Debugger** (För utveckling): Tryck `F5`
-   - **Meny**: Debug → Start Without Debugging
+   - **Without Debugger** (Faster): Press `Ctrl+F5`
+   - **With Debugger** (For development): Press `F5`
+   - **Menu**: Debug → Start Without Debugging
 
-2. **Ange spelarnamn**
+2. **Enter Player Names**
 
-   - Ett konsolfönster visas först
-   - Skriv vit spelares namn → Tryck Enter
-   - Skriv svart spelares namn → Tryck Enter
-   - Spelfönstret öppnas automatiskt
+   - A console window appears first
+   - Type white player's name → Press Enter
+   - Type black player's name → Press Enter
+   - Game window opens automatically
 
-3. **Spela schack!**
+3. **Play Chess!**
 
-   - Det grafiska fönstret visas
-   - Klicka på pjäser för att flytta
-   - Njut!
+   - The graphical window appears
+   - Click on pieces to move them
+   - Enjoy!
 
-#### Förstå IDE:n
+#### Understanding the IDE
 
-**Solution Explorer** (Höger sida):
+**Solution Explorer** (Right side):
 
 ```
 Schack (Solution)
 └── Schack (Project)
     ├── Header Files (.h)
-    │   ├── Game.h          ← Huvudspellogik
-    │   ├── Board.h         ← Schackbräde
-    │   ├── Pieces.h        ← Schackpjäser
+    │   ├── Game.h          ← Main game logic
+    │   ├── Board.h         ← Chess board
+    │   ├── Pieces.h        ← Chess pieces
     │   └── ...
     ├── Source Files (.cpp)
-    │   └── main.cpp        ← Programstartpunkt
+    │   └── main.cpp        ← Program entry point
     └── Resource Files
-        └── assets/         ← Schackpjäsbilder
+        └── assets/         ← Chess piece images
 ```
 
-**Filtyper**:
+**File Types**:
 
-- `.h` filer = **Header-filer** (deklarationer, gränssnitt)
-- `.cpp` filer = **Källfiler** (implementationer)
-- `.vcxproj` = **Projektfil** (Visual Studio-konfiguration)
-- `.sln` = **Solution-fil** (innehåller ett eller flera projekt)
+- `.h` files = **Header files** (declarations, interfaces)
+- `.cpp` files = **Source files** (implementations)
+- `.vcxproj` = **Project file** (Visual Studio configuration)
+- `.sln` = **Solution file** (contains one or more projects)
 
-### Option 2: PowerShell Script (Fastest)
+### Option 2: Visual Studio Code (Lightweight Alternative)
+
+Visual Studio Code is a lightweight, cross-platform code editor perfect for C++ development.
+
+#### Prerequisites
+
+1. **Install Visual Studio Code**
+
+   - Download from: [code.visualstudio.com](https://code.visualstudio.com/)
+   - Install for Windows
+
+2. **Install Required Extensions**
+
+   Open VS Code and install these extensions (Ctrl+Shift+X):
+
+   - ✅ **C/C++** (by Microsoft) - IntelliSense, debugging, code browsing
+   - ✅ **C++ Extension Pack** (by Microsoft) - Complete C++ development tools
+   - ✅ **CMake Tools** (optional) - For CMake support
+
+3. **Install Build Tools**
+
+   You still need a C++ compiler. Choose one:
+
+   **Option A - Visual Studio Build Tools** (Recommended):
+
+   ```powershell
+   # Download Visual Studio Build Tools from:
+   # https://visualstudio.microsoft.com/downloads/
+   # Select "Desktop development with C++" workload
+   ```
+
+   **Option B - MinGW-w64** (Alternative):
+
+   ```powershell
+   # Install via MSYS2
+   winget install MSYS2.MSYS2
+   # Then in MSYS2 terminal:
+   pacman -S mingw-w64-x86_64-gcc
+   ```
+
+#### Open Project in VS Code
+
+1. **Launch VS Code**
+
+   ```powershell
+   cd path\to\chess-game
+   code .
+   ```
+
+2. **Configure C++ IntelliSense**
+
+   VS Code will auto-detect your configuration. If not:
+
+   - Press `Ctrl+Shift+P`
+   - Type "C/C++: Edit Configurations (UI)"
+   - Set compiler path to your MSVC or MinGW compiler
+
+#### Build and Run
+
+**Method A - Using Integrated Terminal**:
+
+```powershell
+# Open integrated terminal (Ctrl+`)
+# Build with MSBuild
+msbuild Schack.vcxproj /p:Configuration=Release /p:Platform=x64
+
+# Run the game
+.\x64\Release\Schack.exe
+```
+
+**Method B - Using Tasks** (Recommended):
+
+1. Create `.vscode/tasks.json`:
+
+   ```json
+   {
+     "version": "2.0.0",
+     "tasks": [
+       {
+         "label": "Build Chess Game",
+         "type": "shell",
+         "command": "msbuild",
+         "args": [
+           "Schack.vcxproj",
+           "/p:Configuration=Release",
+           "/p:Platform=x64"
+         ],
+         "group": {
+           "kind": "build",
+           "isDefault": true
+         },
+         "problemMatcher": ["$msCompile"]
+       },
+       {
+         "label": "Run Chess Game",
+         "type": "shell",
+         "command": "${workspaceFolder}\\x64\\Release\\Schack.exe",
+         "dependsOn": ["Build Chess Game"]
+       }
+     ]
+   }
+   ```
+
+2. **Build**: Press `Ctrl+Shift+B`
+3. **Run**: Press `Ctrl+Shift+P` → "Tasks: Run Task" → "Run Chess Game"
+
+**Method C - Using launch.json for Debugging**:
+
+1. Create `.vscode/launch.json`:
+
+   ```json
+   {
+     "version": "0.2.0",
+     "configurations": [
+       {
+         "name": "Debug Chess Game",
+         "type": "cppvsdbg",
+         "request": "launch",
+         "program": "${workspaceFolder}\\x64\\Debug\\Schack.exe",
+         "args": [],
+         "stopAtEntry": false,
+         "cwd": "${workspaceFolder}",
+         "environment": [],
+         "console": "externalTerminal",
+         "preLaunchTask": "Build Chess Game"
+       }
+     ]
+   }
+   ```
+
+2. **Debug**: Press `F5`
+
+#### VS Code Keyboard Shortcuts
+
+| Shortcut       | Action                     |
+| -------------- | -------------------------- |
+| `Ctrl+Shift+B` | Build project              |
+| `F5`           | Start debugging            |
+| `Ctrl+F5`      | Run without debugging      |
+| `Ctrl+``       | Toggle integrated terminal |
+| `Ctrl+P`       | Quick file open            |
+| `F12`          | Go to definition           |
+| `Shift+F12`    | Find all references        |
+
+### Option 3: PowerShell Script (Fastest)
 
 ```powershell
 # Allow script execution (if needed)
@@ -479,7 +666,7 @@ The script automatically:
 - Builds in Release mode
 - Launches the game
 
-### Option 3: Manual Build
+### Option 4: Manual Build
 
 ```powershell
 # Find MSBuild

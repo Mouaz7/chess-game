@@ -1,6 +1,6 @@
 #pragma once
 
-// Generisk template-klass för positioner
+// Generic template class for positions
 template<typename T>
 class Position {
 private:
