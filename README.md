@@ -1,28 +1,33 @@
-# ♟️ Schack – Modern Chess Game
+# ♟️ Schack – Modernt Schackspel
 
-A feature-rich chess application built with **C++20** and **SFML 3.0**, featuring a Chess.com-inspired interface with fullscreen support, pawn promotion, and visual check warnings.
+Ett funktionsrikt schackprogram byggt med **C/C++** och **SFML 3.0**, med Chess.com-inspirerat gränssnitt, fullskärmsstöd, bonduppgradering och visuella schackvarningar.
 
-![C++](https://img.shields.io/badge/C%2B%2B-20-blue?logo=cplusplus) ![SFML](https://img.shields.io/badge/SFML-3.0-green) ![License](https://img.shields.io/badge/License-MIT-yellow) ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
+![C](https://img.shields.io/badge/C-84.2%25-blue?logo=c) ![C++](https://img.shields.io/badge/C++-13.6%25-blue?logo=cplusplus) ![SFML](https://img.shields.io/badge/SFML-3.0-green) ![License](https://img.shields.io/badge/License-MIT-yellow) ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
 ## 💻 Programmeringsspråk
 
-Detta projekt är skrivet i **C++20** (ISO/IEC 14882:2020 standard).
+Detta projekt är en **hybrid av C och C++** (84.2% C, 13.6% C++, 1.5% CMake).
 
-**Varför C++?**
+**Varför C/C++ hybrid?**
 
-- ⚡ **Hög prestanda** - Kompileras till maskinkod för maximal hastighet
-- 🎮 **Speldesign** - Industristandard för spelutveckling
-- 📚 **SFML-kompatibilitet** - SFML-biblioteket är skrivet i C++
-- 🔒 **Minnesäkerhet** - Smart pointers och RAII förhindrar minnesläckor
-- 🛠️ **Modern syntax** - C++20 ger kraftfulla funktioner som templates, lambdas, och auto
+- ⚡ **Hög prestanda** - C för snabb exekvering, C++ för objektorientering
+- 🎮 **Speldesign** - C för lågnivåoperationer, C++ för spellogik och SFML-integration
+- 📚 **SFML-kompatibilitet** - SFML är ett C++-bibliotek
+- 🔒 **Minnesäkerhet** - C++ smart pointers där det behövs
+- 🛠️ **Flexibilitet** - Bästa av båda världarna
 
-**C++20-funktioner som används:**
+**C++-funktioner som används:**
 
 - `std::unique_ptr` - Automatisk minneshantering
+- Klasser och objektorientering - `Game`, `Board`, `Piece`
 - Templates - Generisk programmering (t.ex. `Position<int>`)
-- Lambda-funktioner - Kortare, renare kod
-- `std::optional` - Säker hantering av event-data
-- Range-based for loops - Enklare iteration
+- SFML C++ API - Grafik och fönsterhantering
+
+**C-kod används för:**
+
+- Lågnivå minnesoperationer
+- Snabba beräkningar
+- Kompatibilitet med vissa bibliotek
 
 ---
 
