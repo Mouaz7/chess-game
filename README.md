@@ -4,6 +4,26 @@ A feature-rich chess application built with **C++20** and **SFML 3.0**, featurin
 
 ![C++](https://img.shields.io/badge/C%2B%2B-20-blue?logo=cplusplus) ![SFML](https://img.shields.io/badge/SFML-3.0-green) ![License](https://img.shields.io/badge/License-MIT-yellow) ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey)
 
+## 💻 Programmeringsspråk
+
+Detta projekt är skrivet i **C++20** (ISO/IEC 14882:2020 standard).
+
+**Varför C++?**
+
+- ⚡ **Hög prestanda** - Kompileras till maskinkod för maximal hastighet
+- 🎮 **Speldesign** - Industristandard för spelutveckling
+- 📚 **SFML-kompatibilitet** - SFML-biblioteket är skrivet i C++
+- 🔒 **Minnesäkerhet** - Smart pointers och RAII förhindrar minnesläckor
+- 🛠️ **Modern syntax** - C++20 ger kraftfulla funktioner som templates, lambdas, och auto
+
+**C++20-funktioner som används:**
+
+- `std::unique_ptr` - Automatisk minneshantering
+- Templates - Generisk programmering (t.ex. `Position<int>`)
+- Lambda-funktioner - Kortare, renare kod
+- `std::optional` - Säker hantering av event-data
+- Range-based for loops - Enklare iteration
+
 ---
 
 ## 📋 Table of Contents
@@ -340,7 +360,150 @@ These are created when you build/run:
 - `x64/Debug/` or `x64/Release/` - Compiled executables
 - `game_history.txt` - Your game moves
 - `match_results.txt` - Game outcomes
-  The script automatically:
+
+---
+
+## 🚀 Building & Running
+
+### Option 1: Visual Studio 2022 Community (Rekommenderas för nybörjare)
+
+#### Ladda ner och installera
+
+1. **Ladda ner Visual Studio 2022 Community** (Gratis!)
+
+   - Besök: [visualstudio.microsoft.com](https://visualstudio.microsoft.com/)
+   - Ladda ner **Visual Studio 2022 Community Edition** (helt gratis)
+
+2. **Installera nödvändiga komponenter**
+
+   Under installation, välj dessa workloads:
+
+   - ✅ **Desktop development with C++**
+
+   Under "Individual components", se till att dessa är markerade:
+
+   - ✅ **MSVC v143 - VS 2022 C++ x64/x86 build tools (Latest)**
+   - ✅ **Windows 10 SDK** (eller Windows 11 SDK)
+   - ✅ **C++ CMake tools for Windows** (valfritt men rekommenderat)
+
+3. **Språkinställningar**
+
+   Visual Studio Community stödjer flera språk:
+
+   - **Standard**: Engelska (rekommenderas för programmering)
+   - **Ändra språk**: Tools → Options → Environment → International Settings
+   - **OBS**: Håll IDE på engelska för enklare felsökning, men kommentarer kan vara på vilket språk som helst
+
+#### Öppna projektet
+
+1. **Starta Visual Studio 2022 Community**
+
+   - Start-menyn → Visual Studio 2022
+
+2. **Öppna schackprojektet**
+
+   **Metod A - Använd Solution-fil** (Enklast):
+
+   - Klicka **File → Open → Project/Solution**
+   - Navigera till din klonade repository-mapp
+   - Välj `Schack.sln` (Solution-fil)
+   - Klicka **Open**
+
+   **Metod B - Använd mapp**:
+
+   - Klicka **File → Open → Folder**
+   - Välj projektmappen
+   - Visual Studio kommer automatiskt att upptäcka projektet
+
+3. **Vänta på att projektet laddas**
+   - Visual Studio kommer att indexera filer (1-2 minuter första gången)
+   - Du ser "Ready" i nedre vänstra hörnet när det är klart
+
+#### Bygga projektet
+
+1. **Välj Build Configuration**
+
+   I verktygsfältet längst upp (nära den gröna play-knappen):
+
+   - **Configuration**: Välj **Release** (inte Debug)
+     - Release = Optimerad, snabbare prestanda
+     - Debug = Långsammare, men enklare att debugga
+   - **Platform**: Välj **x64** (inte x86)
+     - x64 = 64-bit (krävs för detta projekt)
+
+2. **Bygg Solution**
+
+   Välj en metod:
+
+   - **Tangentbord**: Tryck `Ctrl+Shift+B`
+   - **Meny**: Build → Build Solution
+   - **Högerklick**: Solution Explorer → Högerklicka "Schack" → Build
+
+3. **Kontrollera Build Output**
+
+   - Titta på **Output**-fönstret (View → Output om det inte syns)
+   - Lyckad build visar: `Build: 1 succeeded, 0 failed`
+   - Om fel uppstår, kolla [Troubleshooting](#-troubleshooting)
+
+#### Köra spelet
+
+1. **Starta spelet**
+
+   Välj en metod:
+
+   - **Utan Debugger** (Snabbare): Tryck `Ctrl+F5`
+   - **Med Debugger** (För utveckling): Tryck `F5`
+   - **Meny**: Debug → Start Without Debugging
+
+2. **Ange spelarnamn**
+
+   - Ett konsolfönster visas först
+   - Skriv vit spelares namn → Tryck Enter
+   - Skriv svart spelares namn → Tryck Enter
+   - Spelfönstret öppnas automatiskt
+
+3. **Spela schack!**
+
+   - Det grafiska fönstret visas
+   - Klicka på pjäser för att flytta
+   - Njut!
+
+#### Förstå IDE:n
+
+**Solution Explorer** (Höger sida):
+
+```
+Schack (Solution)
+└── Schack (Project)
+    ├── Header Files (.h)
+    │   ├── Game.h          ← Huvudspellogik
+    │   ├── Board.h         ← Schackbräde
+    │   ├── Pieces.h        ← Schackpjäser
+    │   └── ...
+    ├── Source Files (.cpp)
+    │   └── main.cpp        ← Programstartpunkt
+    └── Resource Files
+        └── assets/         ← Schackpjäsbilder
+```
+
+**Filtyper**:
+
+- `.h` filer = **Header-filer** (deklarationer, gränssnitt)
+- `.cpp` filer = **Källfiler** (implementationer)
+- `.vcxproj` = **Projektfil** (Visual Studio-konfiguration)
+- `.sln` = **Solution-fil** (innehåller ett eller flera projekt)
+
+### Option 2: PowerShell Script (Fastest)
+
+```powershell
+# Allow script execution (if needed)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# Build and run
+.\build_and_run.ps1
+```
+
+The script automatically:
 
 - Locates MSBuild
 - Builds in Release mode
