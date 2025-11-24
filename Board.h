@@ -13,6 +13,7 @@
 
 const int BOARD_SIZE = 8;
 const int SQUARE_SIZE = 80;
+const int BORDER_SIZE = 40; // Space for coordinates
 
 class Board {
 private:
@@ -20,7 +21,18 @@ private:
     std::vector<std::unique_ptr<Piece>> pieces;
     PieceColor currentTurn;
     std::map<std::string, sf::Texture> textures;
+    sf::Texture woodTexture;
     bool texturesLoaded;
+    bool woodTextureLoaded;
+    
+    // En passant tracking
+    Position<int> lastMoveFrom;
+    Position<int> lastMoveTo;
+    Piece* lastMovedPiece;
+    
+    // Draw condition tracking
+    int halfmoveClock;  // For 50-move rule
+    std::map<std::string, int> positionHistory;  // For threefold repetition
 
     std::string getPieceKey(PieceType type, PieceColor color) const {
         std::string colorSuffix = (color == PieceColor::WHITE) ? "W" : "B";
@@ -75,11 +87,26 @@ private:
         }
         
         std::cout << "=================================\n\n";
+        std::cout << "=================================\n\n";
         return allLoaded;
     }
 
+    void loadWoodTexture() {
+        if (woodTexture.loadFromFile("assets/WoodTexture.png")) {
+            woodTexture.setSmooth(true);
+            woodTexture.setRepeated(true);
+            woodTextureLoaded = true;
+            std::cout << "Loaded WoodTexture.png\n";
+        } else {
+            woodTextureLoaded = false;
+            std::cout << "Failed to load WoodTexture.png, using fallback color.\n";
+        }
+    }
+
 public:
-    Board() : currentTurn(PieceColor::WHITE), texturesLoaded(false) {
+    Board() : currentTurn(PieceColor::WHITE), texturesLoaded(false), 
+              lastMoveFrom(-1, -1), lastMoveTo(-1, -1), lastMovedPiece(nullptr),
+              halfmoveClock(0) {
         for (int i = 0; i < BOARD_SIZE; i++) {
             for (int j = 0; j < BOARD_SIZE; j++) {
                 board[i][j] = nullptr;
@@ -87,6 +114,7 @@ public:
         }
         initializeBoard();
         texturesLoaded = loadTextures();
+        loadWoodTexture();
         assignTextures(); // Assign textures after loading
         
         if (texturesLoaded) {
@@ -165,25 +193,44 @@ public:
     }
 
     // Helper to simulate a move without actually making it
+    // Helper to simulate a move without actually making it
     bool simulateMove(Position<int> from, Position<int> to, PieceColor& opponentColor) {
-        Piece* piece = board[from.getRow()][from.getCol()];
-        Piece* captured = board[to.getRow()][to.getCol()];
+        Piece* movingPiece = board[from.getRow()][from.getCol()];
+        Piece* capturedPiece = board[to.getRow()][to.getCol()];
         
-        // Temporarily make the move
-        board[to.getRow()][to.getCol()] = piece;
+        if (movingPiece == nullptr) return true; // Invalid
+        
+        // Save original positions
+        Position<int> originalMovingPos = movingPiece->getPosition();
+        Position<int> originalCapturedPos(-1, -1);
+        
+        if (capturedPiece != nullptr) {
+            originalCapturedPos = capturedPiece->getPosition();
+        }
+        
+        // Make temporary move
+        board[to.getRow()][to.getCol()] = movingPiece;
         board[from.getRow()][from.getCol()] = nullptr;
-        Position<int> oldPos = piece->getPosition();
-        piece->setPosition(to);
+        movingPiece->setPosition(to);
         
-        // Check if king is in check after this move
-        bool inCheck = isPlayerInCheck(piece->getColor());
+        // CRITICAL FIX: Move captured piece to invalid position so it doesn't attack during check detection
+        if (capturedPiece != nullptr) {
+            capturedPiece->setPosition(Position<int>(-1, -1));
+        }
         
-        // Undo the move
-        piece->setPosition(oldPos);
-        board[from.getRow()][from.getCol()] = piece;
-        board[to.getRow()][to.getCol()] = captured;
+        // Check if this leaves our king in check
+        bool leavesKingInCheck = isPlayerInCheck(movingPiece->getColor());
         
-        return !inCheck; // Return true if move is valid (doesn't leave king in check)
+        // CRITICAL: Restore everything back
+        movingPiece->setPosition(originalMovingPos);
+        board[from.getRow()][from.getCol()] = movingPiece;
+        board[to.getRow()][to.getCol()] = capturedPiece;
+        
+        if (capturedPiece != nullptr) {
+            capturedPiece->setPosition(originalCapturedPos);
+        }
+        
+        return leavesKingInCheck;
     }
     
     bool wouldLeaveKingInCheck(Position<int> from, Position<int> to) {
@@ -193,7 +240,7 @@ public:
         if (piece == nullptr) return true;
         
         PieceColor opponentColor = (piece->getColor() == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
-        return !simulateMove(from, to, opponentColor);
+        return simulateMove(from, to, opponentColor);
     }
 
     bool movePiece(Position<int> from, Position<int> to) {
@@ -204,11 +251,59 @@ public:
 
         if (!piece->isValidMove(to, board)) return false;
         
+        // Check if this is a castling move
+        bool isCastling = false;
+        Position<int> rookFrom(-1, -1);
+        Position<int> rookTo(-1, -1);
+        
+        if (piece->getType() == PieceType::KING) {
+            int colDiff = to.getCol() - from.getCol();
+            if (std::abs(colDiff) == 2) {
+                isCastling = true;
+                int row = from.getRow();
+                
+                // Determine rook positions
+                if (colDiff > 0) {
+                    // Kingside castling
+                    rookFrom = Position<int>(row, 7);
+                    rookTo = Position<int>(row, 5);
+                } else {
+                    // Queenside castling
+                    rookFrom = Position<int>(row, 0);
+                    rookTo = Position<int>(row, 3);
+                }
+                
+                // For castling, we need to check that the king doesn't pass through check
+                // Check the intermediate square
+                int intermediateCol = from.getCol() + (colDiff > 0 ? 1 : -1);
+                Position<int> intermediatePos(row, intermediateCol);
+                
+                if (wouldLeaveKingInCheck(from, intermediatePos)) {
+                    return false; // King would pass through check
+                }
+            }
+        }
+        
         // CRITICAL: Check if this move would leave the king in check
         if (wouldLeaveKingInCheck(from, to)) {
             return false; // Illegal move!
         }
 
+        // Check for en passant capture
+        bool isEnPassant = false;
+        Position<int> enPassantCapturePos(-1, -1);
+        
+        if (piece->getType() == PieceType::PAWN) {
+            int colDiff = std::abs(to.getCol() - from.getCol());
+            // Diagonal move to empty square = en passant
+            if (colDiff == 1 && board[to.getRow()][to.getCol()] == nullptr) {
+                isEnPassant = true;
+                // The captured pawn is on the same row as the moving pawn, but in the target column
+                enPassantCapturePos = Position<int>(from.getRow(), to.getCol());
+            }
+        }
+
+        // Handle regular capture
         Piece* targetPiece = board[to.getRow()][to.getCol()];
         if (targetPiece != nullptr) {
             pieces.erase(
@@ -219,12 +314,53 @@ public:
                 pieces.end()
             );
         }
+        
+        // Handle en passant capture
+        if (isEnPassant && enPassantCapturePos.isValid()) {
+            Piece* capturedPawn = board[enPassantCapturePos.getRow()][enPassantCapturePos.getCol()];
+            if (capturedPawn != nullptr) {
+                pieces.erase(
+                    std::remove_if(pieces.begin(), pieces.end(),
+                        [capturedPawn](const std::unique_ptr<Piece>& p) {
+                            return p.get() == capturedPawn;
+                        }),
+                    pieces.end()
+                );
+            }
+        }
 
         piece->setPosition(to);
         piece->setHasMoved(true);
+        
+        // Handle castling: move the rook
+        if (isCastling && rookFrom.isValid() && rookTo.isValid()) {
+            Piece* rook = board[rookFrom.getRow()][rookFrom.getCol()];
+            if (rook != nullptr) {
+                rook->setPosition(rookTo);
+                rook->setHasMoved(true);
+            }
+        }
+        
         updateBoardArray();
+        
+        // Update halfmove clock for 50-move rule
+        if (piece->getType() == PieceType::PAWN || targetPiece != nullptr || isEnPassant) {
+            halfmoveClock = 0;  // Reset on pawn move or capture
+            positionHistory.clear();  // Also reset position history
+        } else {
+            halfmoveClock++;
+        }
+        
+        // Track last move for en passant validation
+        lastMoveFrom = from;
+        lastMoveTo = to;
+        lastMovedPiece = piece;
 
         currentTurn = (currentTurn == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
+        
+        // Track position for threefold repetition (after turn switch)
+        std::string posHash = getPositionHash();
+        positionHistory[posHash]++;
 
         return true;
     }
@@ -281,11 +417,68 @@ public:
         return true;
     }
 
-    void draw(sf::RenderWindow& window, const std::vector<Position<int>>& validMoves = std::vector<Position<int>>()) const {
+    void draw(sf::RenderWindow& window, const sf::Font& font, const std::vector<Position<int>>& validMoves = std::vector<Position<int>>()) const {
         // Chess.com style colors
         sf::Color lightSquare(240, 217, 181);
         sf::Color darkSquare(181, 136, 99);
+        sf::Color borderColor(101, 67, 33); // Dark brown fallback
         
+        // Draw Border
+        sf::RectangleShape borderRect(sf::Vector2f(
+            static_cast<float>(BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE), 
+            static_cast<float>(BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE)
+        ));
+        
+        if (woodTextureLoaded) {
+            borderRect.setTexture(&woodTexture);
+            // Calculate texture rect to tile it if needed, or just stretch
+            // For a simple border, stretching might be okay, or using a large texture
+        } else {
+            borderRect.setFillColor(borderColor);
+        }
+        window.draw(borderRect);
+
+        // Draw Coordinates
+        sf::Text coordText(font);
+        coordText.setCharacterSize(20);
+        coordText.setFillColor(sf::Color(240, 217, 181)); // Light color for text
+        coordText.setStyle(sf::Text::Bold);
+
+        // Letters (a-h) - Bottom and Top
+        for (int col = 0; col < BOARD_SIZE; col++) {
+            char letter = 'a' + col;
+            coordText.setString(std::string(1, letter));
+            
+            // Center text in the square width
+            sf::FloatRect bounds = coordText.getLocalBounds();
+            float x = BORDER_SIZE + col * SQUARE_SIZE + (SQUARE_SIZE - bounds.size.x) / 2.0f;
+            
+            // Top
+            coordText.setPosition(sf::Vector2f(x, (BORDER_SIZE - bounds.size.y) / 2.0f - 5));
+            window.draw(coordText);
+            
+            // Bottom
+            coordText.setPosition(sf::Vector2f(x, BORDER_SIZE + BOARD_SIZE * SQUARE_SIZE + (BORDER_SIZE - bounds.size.y) / 2.0f - 5));
+            window.draw(coordText);
+        }
+
+        // Numbers (1-8) - Left and Right
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            std::string num = std::to_string(8 - row);
+            coordText.setString(num);
+            
+            sf::FloatRect bounds = coordText.getLocalBounds();
+            float y = BORDER_SIZE + row * SQUARE_SIZE + (SQUARE_SIZE - bounds.size.y) / 2.0f;
+            
+            // Left
+            coordText.setPosition(sf::Vector2f((BORDER_SIZE - bounds.size.x) / 2.0f, y - 5));
+            window.draw(coordText);
+            
+            // Right
+            coordText.setPosition(sf::Vector2f(BORDER_SIZE + BOARD_SIZE * SQUARE_SIZE + (BORDER_SIZE - bounds.size.x) / 2.0f, y - 5));
+            window.draw(coordText);
+        }
+
         // Reusable shapes to avoid per-frame allocation
         static sf::RectangleShape square(sf::Vector2f(static_cast<float>(SQUARE_SIZE), static_cast<float>(SQUARE_SIZE)));
         static sf::CircleShape fallback(SQUARE_SIZE * 0.3f);
@@ -293,7 +486,11 @@ public:
         // Draw chessboard
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
-                square.setPosition(sf::Vector2f(static_cast<float>(col * SQUARE_SIZE), static_cast<float>(row * SQUARE_SIZE)));
+                // Offset by BORDER_SIZE
+                float xPos = static_cast<float>(BORDER_SIZE + col * SQUARE_SIZE);
+                float yPos = static_cast<float>(BORDER_SIZE + row * SQUARE_SIZE);
+                
+                square.setPosition(sf::Vector2f(xPos, yPos));
 
                 if ((row + col) % 2 == 0) {
                     square.setFillColor(lightSquare);
@@ -317,16 +514,13 @@ public:
                         float scaleY = static_cast<float>(SQUARE_SIZE) / textureSize.y;
                         sprite.setScale(sf::Vector2f(scaleX, scaleY));
                         
-                        sprite.setPosition(sf::Vector2f(
-                            static_cast<float>(col * SQUARE_SIZE),
-                            static_cast<float>(row * SQUARE_SIZE)
-                        ));
+                        sprite.setPosition(sf::Vector2f(xPos, yPos));
                         window.draw(sprite);
                     } else if (!texturesLoaded) {
                         // Fallback: draw a simple colored circle if texture not loaded
                         fallback.setPosition(sf::Vector2f(
-                            static_cast<float>(col * SQUARE_SIZE + SQUARE_SIZE * 0.2f),
-                            static_cast<float>(row * SQUARE_SIZE + SQUARE_SIZE * 0.2f)
+                            xPos + SQUARE_SIZE * 0.2f,
+                            yPos + SQUARE_SIZE * 0.2f
                         ));
                         fallback.setFillColor(
                             piece->getColor() == PieceColor::WHITE ? 
@@ -343,8 +537,8 @@ public:
         for (const auto& move : validMoves) {
             if (!move.isValid()) continue;
             
-            float centerX = move.getCol() * SQUARE_SIZE + SQUARE_SIZE / 2.0f;
-            float centerY = move.getRow() * SQUARE_SIZE + SQUARE_SIZE / 2.0f;
+            float centerX = BORDER_SIZE + move.getCol() * SQUARE_SIZE + SQUARE_SIZE / 2.0f;
+            float centerY = BORDER_SIZE + move.getRow() * SQUARE_SIZE + SQUARE_SIZE / 2.0f;
             
             Piece* targetPiece = board[move.getRow()][move.getCol()];
             
@@ -380,7 +574,8 @@ public:
                 // C-style cast to non-const board for isValidMove
                 if (piece->isValidMove(to, (Piece*(*)[8])board)) {
                     // Only add if it doesn't leave king in check
-                    const_cast<Board*>(this)->updateBoardArray();
+                    // NOTE: wouldLeaveKingInCheck does its own simulation, 
+                    // so we don't need to update the board array here
                     if (!const_cast<Board*>(this)->wouldLeaveKingInCheck(from, to)) {
                         moves.push_back(to);
                     }
@@ -402,7 +597,6 @@ public:
     bool isSquareUnderAttack(Position<int> square, PieceColor attackingColor) const {
         for (const auto& piece : pieces) {
             if (piece->getColor() == attackingColor) {
-                // C-style cast to non-const board for isValidMove
                 if (piece->isValidMove(square, (Piece*(*)[8])board)) {
                     return true;
                 }
@@ -410,7 +604,7 @@ public:
         }
         return false;
     }
-    
+
     bool isPlayerInCheck(PieceColor color) const {
         Position<int> kingPos = findKing(color);
         if (!kingPos.isValid()) return false;
@@ -418,6 +612,7 @@ public:
         PieceColor opponentColor = (color == PieceColor::WHITE) ? PieceColor::BLACK : PieceColor::WHITE;
         return isSquareUnderAttack(kingPos, opponentColor);
     }
+    
     
     bool hasAnyValidMoves(PieceColor color) const {
         for (const auto& piece : pieces) {
@@ -439,6 +634,70 @@ public:
     bool isPlayerInStalemate(PieceColor color) const {
         if (isPlayerInCheck(color)) return false;
         return !hasAnyValidMoves(color);
+    }
+    
+    // Draw by insufficient material
+    bool hasInsufficientMaterial() const {
+        std::vector<PieceType> whitePieces, blackPieces;
+        
+        for (const auto& piece : pieces) {
+            if (piece->getType() != PieceType::KING) {
+                if (piece->getColor() == PieceColor::WHITE) {
+                    whitePieces.push_back(piece->getType());
+                } else {
+                    blackPieces.push_back(piece->getType());
+                }
+            }
+        }
+        
+        // King vs King
+        if (whitePieces.empty() && blackPieces.empty()) return true;
+        
+        // King + Bishop vs King or King vs King + Bishop
+        if ((whitePieces.size() == 1 && whitePieces[0] == PieceType::BISHOP && blackPieces.empty()) ||
+            (blackPieces.size() == 1 && blackPieces[0] == PieceType::BISHOP && whitePieces.empty())) {
+            return true;
+        }
+        
+        // King + Knight vs King or King vs King + Knight
+        if ((whitePieces.size() == 1 && whitePieces[0] == PieceType::KNIGHT && blackPieces.empty()) ||
+            (blackPieces.size() == 1 && blackPieces[0] == PieceType::KNIGHT && whitePieces.empty())) {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    // 50-move rule (100 halfmoves)
+    bool isFiftyMoveRule() const {
+        return halfmoveClock >= 100;
+    }
+    
+    // Threefold repetition
+    bool isThreefoldRepetition() const {
+        for (const auto& entry : positionHistory) {
+            if (entry.second >= 3) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Generate position hash for repetition tracking
+    std::string getPositionHash() const {
+        std::string hash;
+        for (int row = 0; row < BOARD_SIZE; row++) {
+            for (int col = 0; col < BOARD_SIZE; col++) {
+                Piece* piece = board[row][col];
+                if (piece == nullptr) {
+                    hash += ".";
+                } else {
+                    hash += piece->getSymbol();
+                }
+            }
+        }
+        hash += (currentTurn == PieceColor::WHITE) ? "W" : "B";
+        return hash;
     }
     
     int getMaterialScore(PieceColor color) const {

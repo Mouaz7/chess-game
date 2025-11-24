@@ -47,14 +47,28 @@ private:
 
     // View for scaling
     sf::View gameView;
-    const float LOGICAL_WIDTH = BOARD_SIZE * SQUARE_SIZE + 200;
-    const float LOGICAL_HEIGHT = BOARD_SIZE * SQUARE_SIZE;
+    const float LOGICAL_WIDTH = BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE + 200;
+    const float LOGICAL_HEIGHT = BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE;
 
     Position<int> getSquareFromMouse(int mouseX, int mouseY) {
         // Convert window coordinates to view coordinates
         sf::Vector2f worldPos = window.mapPixelToCoords(sf::Vector2i(mouseX, mouseY), gameView);
-        int row = static_cast<int>(worldPos.y) / SQUARE_SIZE;
-        int col = static_cast<int>(worldPos.x) / SQUARE_SIZE;
+        
+        // Account for border
+        float boardX = worldPos.x - BORDER_SIZE;
+        float boardY = worldPos.y - BORDER_SIZE;
+        
+        // Check if click is within the board grid
+        if (boardX < 0 || boardY < 0) return Position<int>(-1, -1);
+        
+        int row = static_cast<int>(boardY) / SQUARE_SIZE;
+        int col = static_cast<int>(boardX) / SQUARE_SIZE;
+        
+        // Validate range
+        if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) {
+            return Position<int>(-1, -1);
+        }
+        
         return Position<int>(row, col);
     }
     
@@ -294,11 +308,16 @@ private:
     }
 
     void handleMouseClick(int mouseX, int mouseY) {
+        // Prevent interaction if game is over
+        if (gameOver) {
+            return;
+        }
+        
         // Handle pawn promotion selection first
         if (waitingForPromotion) {
-            // Promotion UI is in sidebar (x > BOARD_SIZE * SQUARE_SIZE)
+            // Promotion UI is in sidebar (x > BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE)
             sf::Vector2f worldPos = window.mapPixelToCoords(sf::Vector2i(mouseX, mouseY), gameView);
-            if (worldPos.x > BOARD_SIZE * SQUARE_SIZE) {
+            if (worldPos.x > BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE) {
                 int buttonY = static_cast<int>(worldPos.y);
                 PieceType selectedType = PieceType::QUEEN; // Default
                 
@@ -344,16 +363,35 @@ private:
                 std::cout << "Piece deselected\n";
             }
             else {
+                Piece* selectedPiece = board->getPieceAt(selectedSquare);
                 Piece* capturedPiece = board->getPieceAt(clickedSquare);
                 bool isCapture = capturedPiece != nullptr && capturedPiece->getColor() != board->getCurrentTurn();
+                
+                // Detect castling move
+                bool isCastling = false;
+                if (selectedPiece && selectedPiece->getType() == PieceType::KING) {
+                    int colDiff = std::abs(clickedSquare.getCol() - selectedSquare.getCol());
+                    if (colDiff == 2) {
+                        isCastling = true;
+                    }
+                }
 
                 if (board->movePiece(selectedSquare, clickedSquare)) {
-                    std::cout << "Move made: (" << selectedSquare.getRow() 
-                             << "," << selectedSquare.getCol() << ") -> ("
-                             << clickedSquare.getRow() << "," << clickedSquare.getCol() << ")\n";
+                    if (isCastling) {
+                        std::cout << "Castling performed! ";
+                        if (clickedSquare.getCol() > selectedSquare.getCol()) {
+                            std::cout << "Kingside (O-O)\n";
+                        } else {
+                            std::cout << "Queenside (O-O-O)\n";
+                        }
+                    } else {
+                        std::cout << "Move made: (" << selectedSquare.getRow() 
+                                 << "," << selectedSquare.getCol() << ") -> ("
+                                 << clickedSquare.getRow() << "," << clickedSquare.getCol() << ")\n";
+                    }
                     
                     // Add to history
-                    history->addMove(Move(selectedSquare, clickedSquare, isCapture, false));
+                    history->addMove(Move(selectedSquare, clickedSquare, isCapture, isCastling));
                     
                     // Check for pawn promotion
                     Piece* movedPiece = board->getPieceAt(clickedSquare);
@@ -371,35 +409,50 @@ private:
                         }
                     }
                     
-                    PieceColor currentPlayer = board->getCurrentTurn();
+                    // After movePiece(), the turn has already switched!
+                    // So currentTurn is now the OPPONENT who just received the turn.
+                    PieceColor opponentColor = board->getCurrentTurn();
                     
-                    // Check for checkmate
-                    if (board->isPlayerInCheckmate(currentPlayer)) {
+                    // Check for checkmate  
+                    if (board->isPlayerInCheckmate(opponentColor)) {
                         gameOver = true;
-                        std::string winner = (currentPlayer == PieceColor::WHITE ? blackPlayerName : whitePlayerName);
-                        std::string loser = (currentPlayer == PieceColor::WHITE ? whitePlayerName : blackPlayerName);
+                        std::string winner = (opponentColor == PieceColor::WHITE ? blackPlayerName : whitePlayerName);
                         gameResult = winner + " wins by checkmate!";
-                        
-                        std::cout << "\n*** CHECKMATE! ***\n";
-                        std::cout << winner << " wins!\n";
-                        std::cout << loser << " loses.\n\n";
-                        
+                        std::cout << "\n*** CHECKMATE! " << winner << " wins! ***\n\n";
                         saveMatchResult("Checkmate");
                     }
                     // Check for stalemate
-                    else if (board->isPlayerInStalemate(currentPlayer)) {
+                    else if (board->isPlayerInStalemate(opponentColor)) {
                         gameOver = true;
                         gameResult = "Game drawn by stalemate";
-                        
-                        std::cout << "\n*** STALEMATE! ***\n";
-                        std::cout << "Game is a draw!\n\n";
-                        
+                        std::cout << "\n*** STALEMATE! Game is a draw! ***\n\n";
                         saveMatchResult("Stalemate");
                     }
+                    // Check for draw by insufficient material
+                    else if (board->hasInsufficientMaterial()) {
+                        gameOver = true;
+                        gameResult = "Game drawn by insufficient material";
+                        std::cout << "\n*** DRAW! Insufficient material to checkmate. ***\n\n";
+                        saveMatchResult("Draw - Insufficient Material");
+                    }
+                    // Check for draw by 50-move rule
+                    else if (board->isFiftyMoveRule()) {
+                        gameOver = true;
+                        gameResult = "Game drawn by fifty-move rule";
+                        std::cout << "\n*** DRAW! 50 moves without capture or pawn move. ***\n\n";
+                        saveMatchResult("Draw - Fifty Move Rule");
+                    }
+                    // Check for draw by threefold repetition
+                    else if (board->isThreefoldRepetition()) {
+                        gameOver = true;
+                        gameResult = "Game drawn by threefold repetition";
+                        std::cout << "\n*** DRAW! Same position repeated three times. ***\n\n";
+                        saveMatchResult("Draw - Threefold Repetition");
+                    }
                     // Check for check
-                    else if (board->isPlayerInCheck(currentPlayer)) {
+                    else if (board->isPlayerInCheck(opponentColor)) {
                         isCheck = true;
-                        std::string playerName = (currentPlayer == PieceColor::WHITE ? whitePlayerName : blackPlayerName);
+                        std::string playerName = (opponentColor == PieceColor::WHITE ? whitePlayerName : blackPlayerName);
                         std::cout << playerName << " is in CHECK!\n";
                     }
                     else {
@@ -420,7 +473,7 @@ private:
         window.clear(sf::Color(49, 46, 43));  // Chess.com dark background
         
         // Draw board and pieces with move hints
-        board->draw(window, currentValidMoves);
+        board->draw(window, uiFont, currentValidMoves);
 
         // Draw visual check warning - RED BORDER around king
         if (isCheck && !gameOver) {
@@ -429,8 +482,8 @@ private:
                 // Draw thick red border around king square
                 sf::RectangleShape checkWarning(sf::Vector2f(SQUARE_SIZE, SQUARE_SIZE));
                 checkWarning.setPosition(sf::Vector2f(
-                    static_cast<float>(kingPos.getCol() * SQUARE_SIZE),
-                    static_cast<float>(kingPos.getRow() * SQUARE_SIZE)
+                    static_cast<float>(BORDER_SIZE + kingPos.getCol() * SQUARE_SIZE),
+                    static_cast<float>(BORDER_SIZE + kingPos.getRow() * SQUARE_SIZE)
                 ));
                 checkWarning.setFillColor(sf::Color::Transparent);
                 checkWarning.setOutlineColor(sf::Color::Red);
@@ -442,8 +495,8 @@ private:
         // Highlight selected square with Chess.com style (green highlight)
         if (isPieceSelected) {
             sf::RectangleShape highlight(sf::Vector2f(static_cast<float>(SQUARE_SIZE), static_cast<float>(SQUARE_SIZE)));
-            highlight.setPosition(sf::Vector2f(static_cast<float>(selectedSquare.getCol() * SQUARE_SIZE), 
-                                              static_cast<float>(selectedSquare.getRow() * SQUARE_SIZE)));
+            highlight.setPosition(sf::Vector2f(static_cast<float>(BORDER_SIZE + selectedSquare.getCol() * SQUARE_SIZE), 
+                                              static_cast<float>(BORDER_SIZE + selectedSquare.getRow() * SQUARE_SIZE)));
             // Chess.com style: Yellow-green highlight
             highlight.setFillColor(sf::Color(186, 202, 68, 150));  // Semi-transparent green
             highlight.setOutlineColor(sf::Color(186, 202, 68));
@@ -453,7 +506,7 @@ private:
         
         // Draw UI (player info and timer) on the right side
         if (uiFontLoaded) {
-            float uiX = BOARD_SIZE * SQUARE_SIZE + 10;
+            float uiX = BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE + 10;
             float uiY = 20;
             
             // Calculate material difference
@@ -500,12 +553,12 @@ private:
             
             // Separator
             sf::RectangleShape separator(sf::Vector2f(180, 2));
-            separator.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 - 20));
+            separator.setPosition(sf::Vector2f(uiX, (BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE) / 2 - 20));
             separator.setFillColor(sf::Color(80, 80, 80));
             window.draw(separator);
             
             // White player info (bottom)
-            float whiteY = BOARD_SIZE * SQUARE_SIZE - 100;
+            float whiteY = BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE - 100;
             
             // White player timer
             sf::Text whiteTimeText(uiFont);
@@ -551,7 +604,7 @@ private:
                 resultText.setCharacterSize(24);
                 resultText.setFillColor(sf::Color::Red);
                 resultText.setStyle(sf::Text::Bold);
-                resultText.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 + 20));
+                resultText.setPosition(sf::Vector2f(uiX, (BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE) / 2 + 20));
                 window.draw(resultText);
                 
                 // Winner message
@@ -559,7 +612,7 @@ private:
                 winnerText.setString(gameResult);
                 winnerText.setCharacterSize(14);
                 winnerText.setFillColor(sf::Color::Yellow);
-                winnerText.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 + 55));
+                winnerText.setPosition(sf::Vector2f(uiX, (BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE) / 2 + 55));
                 window.draw(winnerText);
             }
             // Check warning text
@@ -569,15 +622,15 @@ private:
                 checkText.setCharacterSize(28);
                 checkText.setFillColor(sf::Color::Red);
                 checkText.setStyle(sf::Text::Bold);
-                checkText.setPosition(sf::Vector2f(uiX, BOARD_SIZE * SQUARE_SIZE / 2 - 20));
+                checkText.setPosition(sf::Vector2f(uiX, (BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE) / 2 - 20));
                 window.draw(checkText);
             }
             
             // Pawn promotion UI
             if (waitingForPromotion) {
                 // Semi-transparent overlay
-                sf::RectangleShape overlay(sf::Vector2f(200, BOARD_SIZE * SQUARE_SIZE));
-                overlay.setPosition(sf::Vector2f(BOARD_SIZE * SQUARE_SIZE, 0));
+                sf::RectangleShape overlay(sf::Vector2f(200, BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE));
+                overlay.setPosition(sf::Vector2f(BOARD_SIZE * SQUARE_SIZE + 2 * BORDER_SIZE, 0));
                 overlay.setFillColor(sf::Color(0, 0, 0, 180));
                 window.draw(overlay);
                 
@@ -600,11 +653,11 @@ private:
                 
                 for (const auto& btn : buttons) {
                     // Button background
-                    sf::RectangleShape button(sf::Vector2f(180, 45));
-                    button.setPosition(sf::Vector2f(uiX, btn.second));
+                    sf::RectangleShape button(sf::Vector2f(180.f, 45.f));
+                    button.setPosition(sf::Vector2f(static_cast<float>(uiX), static_cast<float>(btn.second)));
                     button.setFillColor(sf::Color(70, 130, 180));
                     button.setOutlineColor(sf::Color::White);
-                    button.setOutlineThickness(2);
+                    button.setOutlineThickness(2.f);
                     window.draw(button);
                     
                     // Button text
@@ -613,7 +666,7 @@ private:
                     buttonText.setCharacterSize(18);
                     buttonText.setFillColor(sf::Color::White);
                     buttonText.setStyle(sf::Text::Bold);
-                    buttonText.setPosition(sf::Vector2f(uiX + 50, btn.second + 12));
+                    buttonText.setPosition(sf::Vector2f(static_cast<float>(uiX + 50), static_cast<float>(btn.second + 12)));
                     window.draw(buttonText);
                 }
             }
