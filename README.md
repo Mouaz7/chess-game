@@ -47,11 +47,12 @@ This project is written in **96.2% modern C++**, utilizing object-oriented progr
 
 ### Core Chess Functionality
 
-- ✅ **Most standard chess rules** - All basic piece movements (King, Queen, Rook, Bishop, Knight, Pawn)
+- ✅ **All standard chess rules** - Complete piece movements (King, Queen, Rook, Bishop, Knight, Pawn)
+- ✅ **Special moves** - Castling (kingside & queenside) and en passant fully implemented
 - ✅ **Checkmate & stalemate detection** - Automatic game-end detection
 - ✅ **Legal move validation** - Prevents illegal moves that leave king in check
 - ✅ **Pawn promotion** - Interactive UI to promote pawns to Queen, Rook, Bishop, or Knight
-- ⏳ **Special moves** - Castling and en passant planned for future release
+- ✅ **Draw conditions** - Insufficient material, 50-move rule, threefold repetition
 
 ### Visual Features
 
@@ -144,28 +145,37 @@ All dependencies are automatically managed by vcpkg:
 graph TB
     subgraph "User Interface Layer"
         A[main.cpp - Entry Point]
-        B[Game.h - Game Loop & Rendering]
+        B[Game.h / Game.cpp - Game Loop & Rendering]
     end
 
     subgraph "Game Logic Layer"
-        C[Board.h - Board State & Validation]
-        D[Pieces.h - Piece Implementations]
+        C[Board.h / Board.cpp - Board State & Validation]
+        D1[King.h / King.cpp<br/>Queen.h / Queen.cpp<br/>Rook.h / Rook.cpp]
+        D2[Bishop.h / Bishop.cpp<br/>Knight.h / Knight.cpp<br/>Pawn.h / Pawn.cpp]
+        D3[Piece.h / Piece.cpp - Base Class]
         E[Move.h - Move Representation]
     end
 
     subgraph "Utility Layer"
         F[Position.h - Coordinates]
         G[Enums.h - Types & Colors]
-        H[GameHistory.h - Move Logging]
+        H[GameHistory.h / GameHistory.cpp - Move Logging]
     end
 
     A --> B
     B --> C
     B --> H
-    C --> D
+    C --> D1
+    C --> D2
+    D1 --> D3
+    D2 --> D3
     C --> E
-    D --> F
-    D --> G
+    D1 --> F
+    D2 --> F
+    D3 --> F
+    D1 --> G
+    D2 --> G
+    D3 --> G
     E --> F
 ```
 
@@ -336,16 +346,27 @@ cd chess-game
 
 ```
 chess-game/
-├── 📄 Source Files
-│   ├── main.cpp              # Entry point
-│   ├── Game.h                # Game loop & UI
-│   ├── Board.h               # Chess logic
-│   ├── Pieces.h              # Piece implementations
-│   ├── Piece.h               # Base class
-│   ├── Position.h            # Coordinates
+├── 📄 Header Files (.h)
+│   ├── Game.h                # Game loop & UI declarations
+│   ├── Board.h               # Chess logic declarations
+│   ├── Piece.h               # Base class declarations
+│   ├── King.h, Queen.h       # Individual piece declarations
+│   ├── Rook.h, Bishop.h      # Individual piece declarations
+│   ├── Knight.h, Pawn.h      # Individual piece declarations
+│   ├── Position.h            # Coordinates template
 │   ├── Move.h                # Move data
 │   ├── Enums.h               # Enumerations
-│   └── GameHistory.h         # Move logging
+│   └── GameHistory.h         # Move logging declarations
+│
+├── 📄 Implementation Files (.cpp)
+│   ├── main.cpp              # Entry point
+│   ├── Game.cpp              # Game loop & UI implementation
+│   ├── Board.cpp             # Chess logic implementation
+│   ├── Piece.cpp             # Base class implementation
+│   ├── King.cpp, Queen.cpp   # Individual piece implementations
+│   ├── Rook.cpp, Bishop.cpp  # Individual piece implementations
+│   ├── Knight.cpp, Pawn.cpp  # Individual piece implementations
+│   └── GameHistory.cpp       # Move logging implementation
 │
 ├── 🖼️ Assets
 │   └── assets/               # Chess piece images (PNG)
@@ -728,14 +749,33 @@ msbuild Schack.vcxproj /p:Configuration=Release /p:Platform=x64
 ```
 src/
 ├── main.cpp              # Entry point, initializes Game
-├── Game.h                # Game loop, rendering, events, timers
-├── Board.h               # Board state, move validation, check detection
-├── Pieces.h              # King, Queen, Rook, Bishop, Knight, Pawn
-├── Piece.h               # Abstract base class for all pieces
-├── Position.h            # Template class for (row, col) coordinates
-├── Move.h                # Move representation with metadata
-├── Enums.h               # PieceColor, PieceType enumerations
-└── GameHistory.h         # Move history tracking and file I/O
+
+├── Header Files (.h) - Declarations only
+│   ├── Game.h            # Game loop, rendering, events, timers
+│   ├── Board.h           # Board state, move validation, check detection
+│   ├── Piece.h           # Abstract base class for all pieces
+│   ├── King.h            # King piece declaration
+│   ├── Queen.h           # Queen piece declaration
+│   ├── Rook.h            # Rook piece declaration
+│   ├── Bishop.h          # Bishop piece declaration
+│   ├── Knight.h          # Knight piece declaration
+│   ├── Pawn.h            # Pawn piece declaration
+│   ├── Position.h        # Template class for (row, col) coordinates
+│   ├── Move.h            # Move representation with metadata
+│   ├── Enums.h           # PieceColor, PieceType enumerations
+│   └── GameHistory.h     # Move history tracking declarations
+
+└── Implementation Files (.cpp) - Method definitions
+    ├── Game.cpp          # Game loop & UI implementation
+    ├── Board.cpp         # Chess logic implementation
+    ├── Piece.cpp         # Base class implementation
+    ├── King.cpp          # King piece logic
+    ├── Queen.cpp         # Queen piece logic
+    ├── Rook.cpp          # Rook piece logic
+    ├── Bishop.cpp        # Bishop piece logic
+    ├── Knight.cpp        # Knight piece logic
+    ├── Pawn.cpp          # Pawn piece logic
+    └── GameHistory.cpp   # Move logging implementation
 ```
 
 ### Design Patterns
@@ -745,6 +785,7 @@ src/
 - **RAII** - Smart pointers for memory safety
 - **Polymorphism** - Virtual functions for piece behavior
 - **Template Programming** - Generic Position class
+- **Separation of Concerns** - Interface (.h) separated from implementation (.cpp)
 
 ---
 
