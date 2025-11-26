@@ -76,6 +76,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Piece.cpp" />
+    <ClCompile Include="King.cpp" />
+    <ClCompile Include="Queen.cpp" />
+    <ClCompile Include="Rook.cpp" />
+    <ClCompile Include="Bishop.cpp" />
+    <ClCompile Include="Knight.cpp" />
+    <ClCompile Include="Pawn.cpp" />
+    <ClCompile Include="Board.cpp" />
+    <ClCompile Include="Game.cpp" />
+    <ClCompile Include="GameHistory.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
@@ -84,7 +94,12 @@
     <ClInclude Include="GameHistory.h" />
     <ClInclude Include="Move.h" />
     <ClInclude Include="Piece.h" />
-    <ClInclude Include="Pieces.h" />
+    <ClInclude Include="King.h" />
+    <ClInclude Include="Queen.h" />
+    <ClInclude Include="Rook.h" />
+    <ClInclude Include="Bishop.h" />
+    <ClInclude Include="Knight.h" />
+    <ClInclude Include="Pawn.h" />
     <ClInclude Include="Position.h" />
   </ItemGroup>
   <ItemGroup>
